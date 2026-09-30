@@ -30,12 +30,57 @@ The labs are organized into the following subdirectories:
 - **What We Did**: We built a tiny neural network in PyTorch to act as a safety sensor (an XOR gate). We experimented with different activation functions (Sigmoid, Tanh, ReLU) to see how gradients flow backward through the network to update the weights.
 - **Key Takeaway**: We proved mathematically and experimentally why simple straight lines (linear layers) cannot solve complex logical problems (like XOR), and how "hidden non-linear layers" act as the magic glue that allows neural networks to learn complex representations.
 
+### [Lab 5: Bayesian Networks and Autoregressive Language Models](./Lab5_Bayesian_Networks/)
+- **Core Concept**: Bayesian Networks, Chain Rule Factorization, and Autoregressive Generation.
+- **What We Did**: We connected probabilistic graphical models directly to modern autoregressive language modeling. We implemented First-Order ($P(X_t \mid X_{t-1})$) and Second-Order ($P(X_t \mid X_{t-2}, X_{t-1})$) Markov models from scratch using pure Python data structures, tested probabilistic normalization invariants ($\sum_v P(v \mid w) = 1.0$), contrasted deterministic greedy decoding against probabilistic sampling, and explored why increasing context resolves semantic ambiguity while exponentially increasing parameter sparsity.
+- **Key Takeaway**: We demonstrated that all autoregressive language models (from simple $n$-gram Bayes nets to modern Transformers) are fundamentally performing ancestral sampling over a factorized joint probability distribution.
+
 ---
 
-## 🚀 How to Use This Repository
+## 🛠️ Environment Setup & Installation
+
+A unified virtual environment can be created and configured for all labs:
+
+```bash
+# 1. Create a virtual environment
+python3 -m venv venv
+
+# 2. Activate the virtual environment
+source venv/bin/activate
+
+# 3. Install all required dependencies
+pip install -r requirements.txt
+```
+
+---
+
+## 🚀 How to Run the Laboratory Solutions
+
+Each lab can be run directly using Python from the root workspace or within its directory:
+
+```bash
+# Run Lab 1: Logical Planning
+python Lab1_Logic/planner.py
+
+# Run Lab 2: Search and A*
+python Lab2_Search/search_agent.py
+
+# Run Lab 3: Goal-Based Agent
+python Lab3_Agents/warehouse_agent.py
+
+# Run Lab 4: Neural Models (XOR & Multi-class)
+python Lab4_Neural_Models/neural_xor.py
+
+# Run Lab 5: Bayesian Networks & Autoregressive LM Suite
+python Lab5_Bayesian_Networks/language_model.py
+
+# Run Lab 5 Automated Property Tests (Pytest)
+pytest Lab5_Bayesian_Networks/test_language_model.py
+```
+
 Each lab directory contains:
 1. **The original Lab PDF:** Outlining the academic requirements and tasks.
 2. **The Source Code:** The Python (and Prolog) scripts used to run the experiments.
-3. **`submission.md`:** A beautifully formatted, easy-to-read markdown report answering every prompt, providing real-world examples, and explaining the core concepts in simple terms.
+3. **`submission.md`:** A beautifully formatted, comprehensive markdown report answering every prompt, providing real-world examples, and explaining the core concepts in rigorous detail.
 
 Happy coding!
