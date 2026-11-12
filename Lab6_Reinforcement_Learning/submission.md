@@ -1,7 +1,7 @@
 # Reinforcement Learning and Deep RL - Laboratory Submission
 
 **Course:** Artificial Intelligence (CS F407)  
-**Files:** [implementation](warehouse.py), [tests](test_warehouse.py), [experiment results](results.json), [lab handout](RL_lab_2026.pdf)
+**Files:** [task-by-task answers](task_answers.md), [implementation](warehouse.py), [tests](test_warehouse.py), [experiment results](results.json), [lab handout](RL_lab_2026.pdf)
 
 ## 1. MDP and design
 
