@@ -91,19 +91,19 @@ A sequence of valid actions (e.g., [Right, Right, Down, ...]) that successfully 
 **(a) Did both algorithms find a solution?** Yes.
 **(b) Did they find paths of the same length?** Yes, both algorithms guarantee the optimal (shortest) path.
 **(c) Which algorithm expanded fewer states?** In this specific maze, they expanded the exact same number of states!
-**(d) Why might A* expand fewer states?** Normally, A* expands fewer states because the heuristic $h(n)$ aggressively pulls the search in the direction of the goal, avoiding dead-ends going backwards. However, in this specific tight, narrow maze full of obstacles, there is only one valid winding path. A* is forced to explore all the exact same narrow corridors as BFS, resulting in a tie.
+**(d) Why might A* expand fewer states?** Normally, A* expands fewer states because the heuristic $h(n)$ aggressively pulls the search in the direction of the goal, avoiding dead-ends going backwards. However, in this specific tight, narrow maze full of obstacles, the reported counts happen to tie. Obstacles, heuristic values and tie-breaking all affect the explored states; the equal counts alone do not prove the maze has only one route.
 
 ---
 
 ## 6. Task 6: Investigate the Heuristic
 
 **Why is Manhattan distance appropriate?**
-Because the robot can only move horizontally and vertically (no diagonals). The Manhattan distance perfectly mathematically calculates the minimum number of 1-unit steps required to cross a grid without diagonal movement, making it the most accurate theoretical estimation.
+With unit-cost horizontal and vertical moves, Manhattan distance is the exact shortest distance on an unobstructed grid. Obstacles may force a detour, so on this map it is a lower bound rather than necessarily the actual remaining cost.
 
 **Experimental Results:**
 1. **$h(n) = 0$**: Path Length = 40 | States Expanded = 63. *(Setting the heuristic to 0 degrades A* completely into BFS!)*
-2. **Euclidean Distance**: Path Length = 40 | States Expanded = 63. *(Euclidean is the "straight line" distance. It is slightly less aggressive than Manhattan, but in our tight maze, it still explores the same single path).*
-3. **Multiplied by 2 ($2 \times$ Manhattan)**: Path Length = 40 | States Expanded = 67. *(Multiplying the heuristic makes it **inadmissible**—it overestimates the cost. This makes the algorithm too aggressive and greedy. Surprisingly, in this map, it caused it to explore slightly MORE states (67) because the inflated heuristic tricked it into exploring bad paths when backtracking).*
+2. **Euclidean Distance**: Path Length = 40 | States Expanded = 63. *(Euclidean is the "straight line" distance. It is slightly less aggressive than Manhattan, and this run reports the same path length and expansion count).*
+3. **Multiplied by 2 ($2 \times$ Manhattan)**: Path Length = 40 | States Expanded = 67. *(Doubling Manhattan distance can overestimate the true cost, removing the usual optimality guarantee. This run reports 67 expansions, but that number alone does not establish why they occurred. The implementation can pop an older heap entry after a better path was found, and its counter counts expansions rather than necessarily unique states.)*
 
 ---
 
@@ -116,10 +116,33 @@ Because code is just syntax. If you don't mathematically define your state space
 Unlike BFS, which blindly searches outward in expanding circles like spilled water, A* has "inside information"—a heuristic formula that points it toward the geographical coordinates of the goal, allowing it to stretch its search effort directly toward the target.
 
 **3. Why does the choice of heuristic matter?**
-The heuristic dictates the "personality" of the algorithm. If $h(n)$ is too weak (like $h(n)=0$), A* becomes slow and blind (BFS). If $h(n)$ is mathematically perfect (Manhattan), it solves the maze efficiently. If $h(n)$ is too aggressive (overestimating), A* might skip the optimal path and return a bad, longer route.
+The heuristic dictates the "personality" of the algorithm. If $h(n)$ is too weak (like $h(n)=0$), A* becomes slow and blind (BFS). Manhattan distance is admissible here, but obstacles can make it underestimate the remaining path; its efficiency depends on the map and tie-breaking. If $h(n)$ is too aggressive (overestimating), A* might skip the optimal path and return a bad, longer route.
 
 **4. What did the LLM contribute to the engineering process?**
 The LLM typed out the tedious standard boilerplate for A* (like managing the `heapq`, writing the path reconstruction `while` loop, and setting up the classes). I supplied the architectural design and rules; the LLM did the typing.
 
 **5. What could go wrong if an engineer simply accepted LLM-generated code without testing it?**
 The LLM might write an algorithm that looks like A* but has a subtle logical bug (e.g., forgetting to update the `came_from` dictionary for a cheaper path, or using an inadmissible heuristic). This would cause robots in production to take wildly inefficient routes or crash into walls, all while the code syntax technically looks "correct." Testing edge cases (like the "No Solution" map) is essential to catch these logic bugs.
+
+## Task 3: Recorded path
+
+Re-running the repository program produced the following path on the supplied warehouse map. Coordinates are `(x,y)`, with x increasing right and y down. Consecutive entries are adjacent; the 41 positions represent 40 moves.
+
+```text
+[(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (5, 2), (5, 3), (5, 4), (5, 5), (6, 5), (7, 5), (8, 5), (9, 5), (10, 5), (11, 5), (12, 5), (13, 5), (13, 4), (13, 3), (12, 3), (11, 3), (10, 3), (9, 3), (8, 3), (7, 3), (7, 2), (7, 1), (8, 1), (9, 1), (10, 1), (11, 1), (12, 1), (13, 1), (14, 1), (15, 1), (15, 2), (15, 3), (15, 4), (15, 5), (15, 6), (15, 7)]
+```
+
+The alternative-path test also returns six steps, equal to the Manhattan lower bound from `(1,1)` to `(5,3)`, establishing that this returned route is shortest for that test.
+
+## Task 7: Evaluate the generated agent
+
+1. **What worked:** The submitted program represents the grid, uses a heap frontier and reconstructs a route; its reported counts were reproduced for the four supplied tests.
+2. **Problems and limits:** The A* loop does not skip stale heap entries, so its `states_expanded` counter can include the same state more than once. The doubled heuristic can overestimate, so its result is not generally guaranteed optimal. These are properties of the current code; the repository does not establish when they were first noticed.
+3. **How checked:** Reading the heap loop and running the original, adjacent-goal, unreachable and alternative-path cases provides evidence for the stated behavior. A comparison with BFS on this map checks the returned length, not every possible map.
+4. **Terminology and structures:** `heapq` is a min-heap: the smallest `(f,state)` tuple is removed first. `g_score` stores the best discovered path cost; `came_from` stores predecessors. Personal familiarity at the time of the original lab is not recorded.
+5. **Changes:** The existing report says no significant manual corrections were required. The repository does not independently establish the full editing history, so no additional historical corrections are claimed here.
+6. **Useful tests:** An unreachable goal checks termination; an adjacent goal checks the one-step boundary case; alternative paths check that the returned length matches a known lower bound.
+7. **Trust:** Tests and code inspection are needed; a plausible route alone cannot establish general correctness.
+8. **A* insight:** The priority `g+h` combines cost already paid with an estimate of remaining cost. An admissible heuristic preserves the usual shortest-path guarantee under appropriate implementation conditions; a larger heuristic may be faster or slower and may lose that guarantee.
+
+The numerical counts above are from the submitted implementation and the particular maps; they should not be interpreted as independent evidence about all A* implementations.

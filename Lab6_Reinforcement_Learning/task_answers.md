@@ -132,3 +132,9 @@ Without retraining, both single-robot policies succeeded from `(0,0)` in six ste
 People could compare recorded trajectory pairs and choose the one they prefer, for example because it avoids close encounters or unnecessary waiting. A reward model trained on these comparisons would predict a score or preference for trajectories; an RL agent could optimize against that learned signal. Merely editing the hand-written collision penalty does not train a reward model: it changes a rule directly, without learning a reward from preference data. No RLHF training was performed here.
 
 **Reproducibility:** Python 3.14.3, NumPy 2.5.4, PyTorch 2.15.0+cpu, Matplotlib 3.11.2; training seed 7. Run `python -m unittest -v test_warehouse` and `python warehouse.py` from this directory. Results may vary across software versions or hardware.
+
+## Further explanation: reading the learning results
+
+For a single nonterminal transition with reward `−0.1` and best next value 4, the Q-learning target is `−0.1 + 0.95×4 = 3.7`. A truncation after that transition still uses 3.7: the time limit ends data collection, not the underlying task. A true terminal transition instead uses its reward alone. DQN applies the same distinction to a sampled batch; `gather` compares the target with the value for the action actually taken, not the maximum online value over all actions.
+
+In the two-robot task, the collision penalty takes priority over all other reward terms. Without a collision, if exactly one robot newly reaches its goal and neither makes an invalid move, the team reward is `−0.1 + 5 = 4.9`; if both newly arrive on the same step it is `−0.1 + 10 + 5 = 14.9`. A robot already at its goal cannot collect the arrival bonus again. The observed joint timeout illustrates the difference between avoiding a collision and completing the team objective; a single failed seed does not prove that DQN cannot learn the task.

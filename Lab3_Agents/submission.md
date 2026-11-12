@@ -20,7 +20,7 @@ The agent must keep track of its current $(x, y)$ coordinate position on the map
 A simple reflex agent just reacts to what is immediately in front of it (e.g., "if wall in front, turn right"). This would lead to getting permanently stuck in a U-shaped dead end. A **goal-based agent** "thinks before it acts"—it considers the future, calculates an entire path (a sequence of actions) to achieve its explicit goal, and *then* executes those actions.
 
 **Think About It: What if the warehouse becomes twice as large?**
-If the warehouse scales up, the same search strategy (like A*) would technically still work. However, the *difficulty* arises in computational cost. A larger grid means an exponentially larger number of possible paths. An uninformed search (like BFS) would become too slow, meaning a very strong heuristic would become strictly necessary to solve the map in a reasonable amount of time.
+If the warehouse scales up, the same search strategy (like A*) would technically still work. However, the *difficulty* arises in computational cost. A larger grid increases the number of reachable states and the memory and time needed for search. The number of possible paths may grow rapidly, but BFS with a visited set processes reachable cells rather than enumerating all paths. Whether BFS remains practical depends on the map and resources; a heuristic can help but is not strictly necessary.
 
 ---
 
@@ -57,7 +57,7 @@ N/A (Though if it failed, breaking the prompt down to explicitly define what a "
 It explicitly implemented A* Search, using the `heapq` module to manage the frontier.
 
 **4. Why do you think the LLM selected this algorithm?**
-A* is the industry-standard algorithm for 2D grid pathfinding. It was selected because it guarantees the shortest path (optimal) while exploring far fewer states than Breadth-First Search, making it highly efficient.
+A* is the industry-standard algorithm for 2D grid pathfinding. The prompt explicitly requested A* with Manhattan distance. With unit costs and an admissible heuristic it can find a shortest path; it is not guaranteed to expand fewer states than BFS on every map.
 
 ---
 
@@ -73,3 +73,9 @@ An engineer must never blindly accept LLM code because the model is capable of g
 **Core Takeaway:** 
 $AI Science \rightarrow AI Engineering$
 The science is formulating the math and the rules. The engineering is writing the code. We can use LLMs to automate the engineering, but the human must remain entirely responsible for verifying the science.
+
+## Additional explanation: perception, planning, and execution
+
+The map, present position and goal are inputs to the decision component. A* evaluates candidate cells using `f(n)=g(n)+h(n)`, where `g` is the discovered cost so far and Manhattan `h` is a lower bound on the remaining cost for four-direction unit-cost movement. The planner returns a sequence of neighboring cells; the action component can execute it one move at a time. This example assumes the map is known and fixed. If shelves move or an action fails, the agent would need to observe the change and replan; that behavior is not demonstrated merely by finding a path in a static grid.
+
+The prompt explicitly named A*, so the record supports saying that the program implemented the requested algorithm, not that the LLM independently selected it. A successful output should still be checked against the map for legal moves, endpoints and obstacles; the report's first-attempt claim is a historical assertion rather than something the repository alone independently verifies.

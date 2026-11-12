@@ -2,13 +2,13 @@
 
 **Course:** Artificial Intelligence Laboratory  
 **Topic:** Connecting Bayesian Networks and Probabilistic Graphical Models to Autoregressive Language Generation  
-**Artifacts:** [language_model.py](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/language_model.py), [test_language_model.py](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/test_language_model.py), [generated_sentences_first_order.txt](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/generated_sentences_first_order.txt), [generated_sentences_second_order.txt](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/generated_sentences_second_order.txt)
+**Artifacts:** [language_model.py](language_model.py), [test_language_model.py](test_language_model.py), [generated_sentences_first_order.txt](generated_sentences_first_order.txt), [generated_sentences_second_order.txt](generated_sentences_second_order.txt)
 
 ---
 
 ## Executive Summary & Core Insight
 
-Modern Large Language Models (LLMs) like GPT-4 or Gemini are frequently perceived as mysterious black boxes that emit text. However, at their mathematical foundation, **all autoregressive language models are Bayesian networks**. 
+Modern Large Language Models (LLMs) like GPT-4 or Gemini are frequently perceived as mysterious black boxes that emit text. A distribution over a fixed sequence of autoregressive tokens can be represented as a Bayesian network whose conditional factors correspond to the token-generation steps. 
 
 By factorizing the joint probability distribution of a word sequence using the chain rule of probability:
 $$P(X_1, X_2, \dots, X_T) = P(X_1) \prod_{t=2}^T P(X_t \mid X_1, \dots, X_{t-1})$$
@@ -17,7 +17,7 @@ text generation is reduced to **iterative sampling from local conditional probab
 In this laboratory:
 1. We formalize text generation as probabilistic inference over a directed acyclic graphical model (Bayesian network).
 2. We implement first-order and second-order autoregressive language models using pure Python data structures (no neural network libraries or pretrained models).
-3. We test fundamental probabilistic invariants ($\sum_v P(v \mid w) = 1.0$) to guarantee mathematical correctness.
+3. We test fundamental probabilistic invariants ($\sum_v P(v \mid w) = 1.0$) to check normalization on the tested contexts.
 4. We contrast deterministic (greedy) generation against probabilistic sampling.
 5. We prove why higher-order context disambiguates semantic meaning but simultaneously explodes context sparsity, establishing the bridge to modern neural autoregressive models.
 
@@ -29,7 +29,7 @@ In this laboratory:
 > **Prompt:** *Why is the chain-rule decomposition $P(X_1, \dots, X_T) = P(X_1) \prod_{t=2}^T P(X_t \mid X_1, \dots, X_{t-1})$ useful for generating text?*
 
 **Explanation:**  
-Directly sampling an entire sentence of length $T$ simultaneously from a joint distribution $P(X_1, \dots, X_T)$ is computationally intractable. If a vocabulary contains $|V|$ unique words, there are $|V|^T$ possible sentence configurations. Defining or sampling from a discrete joint distribution of this combinatorial size is impossible.
+Directly sampling an entire sentence of length $T$ simultaneously from a joint distribution $P(X_1, \dots, X_T)$ is computationally intractable. If a vocabulary contains $|V|$ unique words, there are $|V|^T$ possible sentence configurations. Representing an arbitrary full joint table quickly becomes impractical at realistic sizes; small joint distributions can be represented and sampled directly.
 
 The autoregressive chain-rule decomposition transforms this intractable global problem into a sequence of $T$ tractable **step-by-step local generation decisions**:
 1. Sample the first token $X_1 \sim P(X_1)$.
@@ -170,7 +170,7 @@ Use ordinary Python data structures and random sampling.
 ### Question 4: Storage of Transition Counts
 > **Prompt:** *Where in the program are the transition counts stored?*
 
-In [`language_model.py`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/language_model.py#L48), transition counts are stored in a nested dictionary mapping the preceding word to a `collections.Counter`:
+In [`language_model.py`](language_model.py#L48), transition counts are stored in a nested dictionary mapping the preceding word to a `collections.Counter`:
 ```python
 self.transitions: Dict[str, Counter] = defaultdict(Counter)
 ```
@@ -181,7 +181,7 @@ For example, `self.transitions['the']['cat'] = 3`.
 ### Question 5: Computation of Conditional Probabilities
 > **Prompt:** *Where is $P(X_t \mid X_{t-1})$ computed?*
 
-In [`language_model.py`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/language_model.py#L74-L78), during the `fit()` method:
+In [`language_model.py`](language_model.py#L74-L78), during the `fit()` method:
 ```python
 for w_prev, next_counts in self.transitions.items():
     total = sum(next_counts.values())
@@ -298,7 +298,7 @@ However, the first-order model predicts `cat` in **all three situations** becaus
 ## 6. Part IX & X: Text Generation & Deterministic vs. Probabilistic Modes
 
 ### Generated Sentences using Probabilistic Sampling (20 Sentences)
-Generated with random seed 1337 and saved to [`generated_sentences_first_order.txt`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/generated_sentences_first_order.txt):
+Generated with random seed 1337 and saved to [`generated_sentences_first_order.txt`](generated_sentences_first_order.txt):
 
 1. `<START> the rug <END>`
 2. `<START> the cat ran to the park <END>`
@@ -349,7 +349,7 @@ Generated with random seed 1337 and saved to [`generated_sentences_first_order.t
 > **Prompt:** *Compare the two sets of generated sentences. Which mode produces more variation? Why?*
 
 **Comparison & Analysis:**
-- **Sampling (Mode B) produces infinitely more variation** (100% diversity vs. 0% in greedy mode).
+- **Sampling (Mode B) produces more variation in these five examples:** all five sampled strings differ, while the five greedy strings are identical. These counts are specific to this small sample and should not be read as a general diversity rate.
 - **Why Greedy Fails:** Greedy generation is completely deterministic. At `<START>`, it selects `the`. At `the`, it selects `cat`. At `cat`, it selects `sat`. At `sat`, it selects `on`. At `on`, it selects `the`. This forms a closed directed cycle:
 $$\text{the} \rightarrow \text{cat} \rightarrow \text{sat} \rightarrow \text{on} \rightarrow \text{the} \dots$$
 Because $\arg\max$ has no randomness, it is trapped in this cycle forever and repeats until hitting the artificial safety limit `max_tokens = 30`. It can never emit `<END>` because $P(\text{<END>} \mid \text{the}) = 0.0$ and $P(\text{<END>} \mid \text{on}) = 0.0$.
@@ -441,8 +441,8 @@ Do not replace the model with a neural network or a pretrained language model.
 | **Observed Contexts in Training Data** | 11 | 14 | Only a fraction of contexts ever occur |
 | **Zero-Probability Contexts** | 1 (8.3%) | 130 (90.3%) | High-order models suffer from massive sparsity |
 | **Distinct Non-Zero Parameters** | 18 | 18 | Information is redistributed into specific paths |
-| **Semantic Incoherence Rate** | **34.0%** | **0.0%** | 2nd-order completely eliminates nonsensical phrases |
-| **Sample Diversity (Unique / 100)** | 34.0% | 6.0% | 2nd-order strictly generates valid English sentences |
+| **Semantic Incoherence Rate** | **34.0%** | **0.0%** | In this measured sample under the chosen criterion |
+| **Sample Diversity (Unique / 100)** | 34.0% | 6.0% | Six distinct outputs in this sample; not a general grammar guarantee |
 
 ---
 
@@ -454,7 +454,7 @@ Do not replace the model with a neural network or a pretrained language model.
 - `<START> the cat sat on the cat sat on the dog sat on the rug <END>` *(Absurd repetition & sitting on animals!)*
 - `<START> the cat sat on the park <END>` *(Semantic mismatch: cats don't sit "on" a park!)*
 
-#### Second-Order Sampled Sentences (Flawless Grammatical Coherence):
+#### Second-Order Sampled Sentences (This Small Corpus):
 - `<START> the dog ran to the park <END>`
 - `<START> the cat ran to the park <END>`
 - `<START> the dog sat on the rug <END>`
@@ -462,7 +462,7 @@ Do not replace the model with a neural network or a pretrained language model.
 - `<START> the dog sat on the mat <END>`
 - `<START> the cat sat on the rug <END>`
 
-**Key Takeaway:** The second-order model completely eradicated every single nonsensical sentence. It learned that:
+**Key Takeaway:** In the listed samples from this toy corpus, the second-order model produced only the six corpus sentences. This does not establish general grammatical understanding. Its observed counts encode that:
 1. `('<START>', 'the')` can only be followed by subject animals (`cat`, `dog`).
 2. `('on', 'the')` can only be followed by flat resting items (`mat`, `rug`).
 3. `('to', 'the')` can only be followed by the destination (`park`).
@@ -473,7 +473,7 @@ Do not replace the model with a neural network or a pretrained language model.
 > **Prompt:** *Why does increasing the amount of context potentially improve prediction? Why can it simultaneously make the model harder to estimate from limited data? Relate your answer to the size of the conditional probability table.*
 
 **1. Why Increasing Context Improves Prediction:**
-Human language exhibits long-range semantic and syntactic dependencies. Adding context gives the model the necessary information to **disambiguate** homographs, parts of speech, and semantic roles. As shown above, knowing that `the` was preceded by `on` vs. `to` vs. `<START>` allows the model to assign 0% probability to ungrammatical continuations (like "on the cat" or "to the mat"), yielding sharp, realistic predictions.
+Human language exhibits long-range semantic and syntactic dependencies. Adding context gives the model the necessary information to **disambiguate** homographs, parts of speech, and semantic roles. As shown above, knowing that `the` was preceded by `on` vs. `to` vs. `<START>` allows the model to assign 0% probability to ungrammatical continuations (like "on the cat" or "to the mat"), yielding sharper predictions for these observed toy contexts.
 
 **2. Why It Simultaneously Makes the Model Harder to Estimate:**
 The size of the discrete conditional probability table grows exponentially with context length $k$:
@@ -483,7 +483,7 @@ If $|V| = 50,000$ (a typical subword vocabulary in modern LLMs):
 - For $k=2$ (2nd order): $50,000^3 = 1.25 \times 10^{14}$ entries (~500 TB).
 - For $k=10$: $50,000^{11} \approx 4.8 \times 10^{51}$ entries (more entries than atoms in the Earth!).
 
-In any real dataset, almost all of these higher-order contexts will have count $C = 0$. If an unseen context is encountered during inference, Maximum Likelihood Estimation assigns probability $0.0$, causing the model to crash or fail. This fundamental limitation of tabular Bayesian networks explains why modern AI transitioned to neural representations.
+In any real dataset, almost all of these higher-order contexts will have count $C = 0$. For a context with zero observations, unsmoothed maximum-likelihood counts do not define a normalized conditional distribution because the denominator is zero. An implementation needs an explicit policy, such as backoff or smoothing; otherwise it cannot sample from that context. This fundamental limitation of tabular Bayesian networks explains why modern AI transitioned to neural representations.
 
 ---
 
@@ -586,10 +586,18 @@ This gave us an unambiguous, objective property to test in our test suite (`test
 
 ## 12. Verification & Deliverables Checklist
 
-- [x] **Deliverable 1:** Python implementation of first-order model (`FirstOrderLanguageModel` in [`language_model.py`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/language_model.py#L42))
-- [x] **Deliverable 2:** Python implementation of second-order model (`SecondOrderLanguageModel` in [`language_model.py`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/language_model.py#L148))
+- [x] **Deliverable 1:** Python implementation of first-order model (`FirstOrderLanguageModel` in [`language_model.py`](language_model.py#L42))
+- [x] **Deliverable 2:** Python implementation of second-order model (`SecondOrderLanguageModel` in [`language_model.py`](language_model.py#L148))
 - [x] **Deliverable 3:** Conditional probability tables for selected contexts (Displayed in Section 2 and Section 8)
-- [x] **Deliverable 4:** Examples of generated text (20 sampled sentences in [`generated_sentences_first_order.txt`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/generated_sentences_first_order.txt) and [`generated_sentences_second_order.txt`](file:///home/devambhavsar/ML/AI-Gurukul/Site-Plan-Agent/AI_slop/ai-lab-solution/Lab5_Bayesian_Networks/generated_sentences_second_order.txt))
+- [x] **Deliverable 4:** Examples of generated text (20 sampled sentences in [`generated_sentences_first_order.txt`](generated_sentences_first_order.txt) and [`generated_sentences_second_order.txt`](generated_sentences_second_order.txt))
 - [x] **Deliverable 5:** Results of probability-normalisation tests (Section 4; verified via `pytest`)
 - [x] **Deliverable 6:** Complete answers to Questions 1 through 14
 - [x] **Deliverable 7:** Reflection on LLM usage with inspection and correction of joint-vs-conditional normalization bug
+
+## Additional explanation: interpreting the results
+
+The chain rule factorizes any joint distribution over a fixed token sequence; describing the conditional factors as a directed graphical model is a representation of those dependencies, not proof that a language model is a simple first-order Markov chain. The first-order model assumes `P(X_t | X_1,...,X_{t-1}) = P(X_t | X_{t-1})`; the second-order model conditions on the previous two tokens. These are modeling assumptions beyond the chain rule itself.
+
+For example, the six-sentence corpus has `C(the, cat)=3` and 12 outgoing occurrences of `the`, giving `P(cat | the)=3/12`. A zero count means an unsmoothed model assigns zero probability for that observed context and continuation; it is not proof that the continuation is impossible in language. Normalization tests verify that the tested conditional rows sum to one, but do not establish semantic quality or correctness of every code path.
+
+Greedy decoding selects a maximum at each step and can cycle, as the displayed example shows. Sampling can escape that cycle, but it can also produce repetitions or reach the length cutoff. The percentages in the comparison table describe a particular small sample and the criterion used by that experiment; they are not universal estimates of language quality. More context can disambiguate examples in this corpus, but it also creates more sparse contexts and does not guarantee grammatical or semantic correctness.

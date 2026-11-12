@@ -10,7 +10,7 @@ We are building a safety sensor that throws an alarm ($y=1$) exactly when two se
 XOR is physically impossible to separate with a single straight line. If you plot the four points on an X-Y graph, the two $y=1$ points are on opposite corners (top-left, bottom-right), and the two $y=0$ points are on the other opposite corners. No single straight line can ever put the 1s on one side and the 0s on the other. 
 
 **Prediction for a single linear (affine) transformation:**
-If we train a network with NO hidden layers (or a hidden layer with no non-linear activation), it will be mathematically equivalent to a single straight line. The loss will get stuck, and the network will just guess $0.5$ (50%) for everything, failing completely to learn the XOR pattern.
+If we train a network with NO hidden layers (or a hidden layer with no non-linear activation), it will be mathematically equivalent to a single straight line. A single affine decision boundary cannot classify all four points correctly. Its exact probabilities and final loss depend on training and initialization; they need not all be exactly 0.5.
 
 ---
 
@@ -49,14 +49,14 @@ If all weights and biases are initialized to exactly zero, the model completely 
 ### Part D: Activation Experiment
 | Hidden Activation | Final Loss | 4/4 Correct? | Early $\|\nabla_{W^{(1)}}L\|_2$ |
 | :--- | :--- | :--- | :--- |
-| **Sigmoid** | Very High (~0.69) | No (often stuck) | Very Small |
-| **Tanh** | Very Low (~0.005) | Yes | Moderate |
-| **ReLU** | Varies (often 0.0) | Yes (usually) | Large (or exactly 0 if dead) |
+| **Sigmoid** | 0.6913 | 2/4 | 0.008644 |
+| **Tanh** | 0.0039 | 4/4 | 0.024760 |
+| **ReLU** | 0.3468 | 3/4 | 0.068473 |
 
-**Interpretation:**
+**Interpretation:** These values come from a fresh seed-42 run of the repository code, using 2,000 epochs and learning rate 0.5 for each activation. They are one run per activation, not general rankings.
 - **Sigmoid** suffers from the vanishing gradient problem. Its derivatives are small (max 0.25), so when multiplied through layers, the learning signal shrinks, causing slow or stalled learning.
 - **Tanh** is zero-centered and has steeper derivatives, leading to much faster and more reliable convergence for this tiny problem.
-- **ReLU** has a derivative of exactly 1.0 when active, allowing very fast learning. However, if initialized poorly, units can output negative values, making the derivative exactly 0.0 ("dying ReLU").
+- **ReLU** has a derivative of exactly 1.0 when active, allowing very fast learning. However, negative pre-activations make the local ReLU derivative zero (a possible dying-ReLU mechanism). The 3/4 result here does not by itself prove which mechanism caused the failure.
 
 ---
 
@@ -76,7 +76,7 @@ When moving from a 1-output binary decision to a 3-output multi-class decision (
 Adding "depth" (more layers) is useless if the layers are purely linear, as they just collapse into one line. Non-linearity is what actually gives deep networks the power to model complex, curved decision boundaries.
 
 **2. What evidence showed backpropagation supplied a useful learning signal?**
-The fact that the final loss approached zero and the predictions exactly matched the XOR labels. A completely random or zero gradient would have left the network guessing 0.5 forever.
+The loss fell and all four predicted labels became correct in a successful run. Together with the recorded gradient, that shows parameters changed in a useful direction on this small dataset; a nonzero gradient by itself would not establish learning.
 
 **3. Why did identical/zero initialization prevent the hidden units from learning distinct features?**
 Because of symmetry. If two neurons start with the same weights, they process the inputs identically, get the same error, and update identically. They are mathematically locked together.
@@ -92,3 +92,30 @@ The LLM was fantastic at instantly generating the PyTorch training loop boilerpl
 
 **7. Which tests would you keep if the model were scaled up?**
 Tracking the Loss curve, Final Accuracy, and perhaps the Gradient Norm (to watch for vanishing/exploding gradients) are standard practice and scale well. Exhaustive finite-difference checks or printing every single logit/probability vector becomes impossible when the model has billions of parameters and millions of classes.
+
+## Additional answers and reproducible measurements
+
+### Task 1 and Task 2
+
+The input space is `{0,1}²` and the output space is `{0,1}`. The labeled examples are `(0,0)→0`, `(0,1)→1`, `(1,0)→1`, `(1,1)→0`. The two positive points occupy opposite corners of the square, with a negative point on each side of the line joining them; a single line cannot separate both positive points from both negatives. The 2→2→1 model uses a nonlinear hidden activation and one output logit with `BCEWithLogitsLoss`, a numerically stable combination of sigmoid and binary cross-entropy. Backpropagation supplies gradients that adjust the hidden weights according to their contribution to the output loss; hidden units are not directly given target labels.
+
+### Task 3: prompt and code inspection
+
+The original exact prompt and any pre-execution corrections are not recorded in this repository, so they cannot be reconstructed as a factual transcript. A suitable reproducible specification is: “Use the four XOR examples, a randomly initialized 2–2–1 PyTorch network with tanh, binary logits and BCEWithLogitsLoss; train in a full batch with a fixed seed and report losses, predictions and a first-layer gradient.” In `train_binary`, `model(X)` performs the forward pass, `criterion(outputs, y_binary)` forms the scalar mean loss, `loss.backward()` computes gradients, and `optimizer.step()` updates parameters. Inspection can check those operations and dimensions; losses and convergence require a run.
+
+### Task 4: measured values
+
+In a fresh CPU run using Python 3.14.3, PyTorch 2.15.0+cpu, seed 42, tanh, SGD at 0.5 and 5,000 epochs, the basic loss went from **0.7563 to 0.0013**. The probabilities for `(0,0), (0,1), (1,0), (1,1)` were approximately `[0.000976, 0.998237, 0.998229, 0.000850]`; thresholded labels were `[0,1,1,0]`. The first-layer weight gradient at the final backward pass was approximately `[[0.00011867, -0.00011782], [0.00010165, -0.00009444]]`. The activation table above uses 2,000 epochs instead, with the same seed reset for each run. A separate zero-initialized run retained loss 0.6931 and identical units; both start with the same values and receive the same gradients. To distinguish sigmoid saturation from inactive ReLU, inspect pre-activations: large-magnitude sigmoid inputs give outputs near 0 or 1, whereas nonpositive ReLU inputs produce zero activation and local derivative.
+
+### Task 5: three-class results and gradient
+
+With seed 42 and the submitted 2→2→3 network, the observed softmax vectors, ordered by input `(0,0), (0,1), (1,0), (1,1)`, were approximately:
+
+| Input | P(class 0), P(class 1), P(class 2) | Predicted class |
+|---|---|---:|
+| `(0,0)` | `[0.998443, 0.001557, 0.00000004]` | 0 |
+| `(0,1)` | `[0.000393, 0.998819, 0.000788]` | 1 |
+| `(1,0)` | `[0.000393, 0.998819, 0.000788]` | 1 |
+| `(1,1)` | `[0.000002, 0.001624, 0.998375]` | 2 |
+
+The first unrounded vector summed to 1.000000 in the program. For logits `z`, softmax `p_i = exp(z_i)/Σ_j exp(z_j)` sums to one by construction. With one-hot target `y` and cross-entropy `L = −Σ_i y_i log p_i`, differentiating with respect to each logit gives `∂L/∂z_i = p_i − y_i` for one example; mean reduction also divides the batch gradient by batch size. Large-vocabulary next-token prediction retains softmax and cross-entropy mathematics, while the model producing logits and computational cost change substantially. Results can differ with versions, seeds and hardware.
