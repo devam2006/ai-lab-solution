@@ -35,6 +35,10 @@ The labs are organized into the following subdirectories:
 - **What We Did**: We connected probabilistic graphical models directly to modern autoregressive language modeling. We implemented First-Order ($P(X_t \mid X_{t-1})$) and Second-Order ($P(X_t \mid X_{t-2}, X_{t-1})$) Markov models from scratch using pure Python data structures, tested probabilistic normalization invariants ($\sum_v P(v \mid w) = 1.0$), contrasted deterministic greedy decoding against probabilistic sampling, and explored why increasing context resolves semantic ambiguity while exponentially increasing parameter sparsity.
 - **Key Takeaway**: We demonstrated that all autoregressive language models (from simple $n$-gram Bayes nets to modern Transformers) are fundamentally performing ancestral sampling over a factorized joint probability distribution.
 
+### [Lab 6: Reinforcement Learning and Deep RL](./Lab6_Reinforcement_Learning/)
+- **Core Concept**: Tabular Q-learning, DQN, and simultaneous multi-robot control.
+- **What We Did**: Tested warehouse movement, rewards, TD targets and collisions, then trained and evaluated single- and two-robot controllers.
+
 ---
 
 ## 🛠️ Environment Setup & Installation
@@ -73,6 +77,10 @@ python Lab4_Neural_Models/neural_xor.py
 
 # Run Lab 5: Bayesian Networks & Autoregressive LM Suite
 python Lab5_Bayesian_Networks/language_model.py
+
+# Run Lab 6 experiments and tests
+python Lab6_Reinforcement_Learning/warehouse.py
+python -m unittest discover -s Lab6_Reinforcement_Learning -p "test_warehouse.py"
 
 # Run Lab 5 Automated Property Tests (Pytest)
 pytest Lab5_Bayesian_Networks/test_language_model.py
